@@ -14,5 +14,6 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 COPY main.py .
 
 ENV PORT=8080
+ENV PYTHONUNBUFFERED=1
 
 CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app

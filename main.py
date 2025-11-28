@@ -2,6 +2,9 @@ from flask import Flask, request
 import json
 import base64
 import subprocess
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
@@ -44,30 +47,30 @@ def handle_event():
     size = envelope.get('size', 0)
     
     # Mostrar información
-    print('=' * 60)
-    print(f'📁 ARCHIVO CARGADO AL BUCKET')
-    print('=' * 60)
-    print(f'Bucket: {bucket_name}')
-    print(f'Archivo: {file_name}')
-    print(f'Tipo: {content_type}')
-    print(f'Tamaño: {size} bytes')
-    print(f'Event ID: {event_id}')
-    print(f'Event Type: {event_type}')
-    print('=' * 60)
+    logging.info('=' * 60)
+    logging.info(f'📁 ARCHIVO CARGADO AL BUCKET')
+    logging.info('=' * 60)
+    logging.info(f'Bucket: {bucket_name}')
+    logging.info(f'Archivo: {file_name}')
+    logging.info(f'Tipo: {content_type}')
+    logging.info(f'Tamaño: {size} bytes')
+    logging.info(f'Event ID: {event_id}')
+    logging.info(f'Event Type: {event_type}')
+    logging.info('=' * 60)
     
     # Ejecutar comandos NVIDIA
-    print('\n🔧 INFORMACIÓN DEL SISTEMA')
-    print('=' * 60)
+    logging.info('\n🔧 INFORMACIÓN DEL SISTEMA')
+    logging.info('=' * 60)
     
-    print('\n📌 NVCC Version:')
+    logging.info('\n📌 NVCC Version:')
     nvcc_output = run_command('nvcc -V')
-    print(nvcc_output)
+    logging.info(nvcc_output)
     
-    print('\n📌 NVIDIA-SMI:')
+    logging.info('\n📌 NVIDIA-SMI:')
     nvidia_smi_output = run_command('nvidia-smi')
-    print(nvidia_smi_output)
+    logging.info(nvidia_smi_output)
     
-    print('=' * 60)
+    logging.info('=' * 60)
     
     # Respuesta
     response = {
