@@ -35,16 +35,25 @@ def handle_event():
     if not envelope:
         return 'No se recibió ningún evento', 400
     
+    # Debug: Log raw payload
+    logging.info(f"Raw Payload: {json.dumps(envelope)}")
+    
     # Extraer información del evento
     event_type = request.headers.get('ce-type', 'Desconocido')
     event_id = request.headers.get('ce-id', 'Desconocido')
     source = request.headers.get('ce-source', 'Desconocido')
     
+    # Handle CloudEvent data wrapper
+    if 'data' in envelope:
+        payload = envelope['data']
+    else:
+        payload = envelope
+    
     # Información del archivo
-    bucket_name = envelope.get('bucket', 'Desconocido')
-    file_name = envelope.get('name', 'Desconocido')
-    content_type = envelope.get('contentType', 'Desconocido')
-    size = envelope.get('size', 0)
+    bucket_name = payload.get('bucket', 'Desconocido')
+    file_name = payload.get('name', 'Desconocido')
+    content_type = payload.get('contentType', 'Desconocido')
+    size = payload.get('size', 0)
     
     # Mostrar información
     logging.info('=' * 60)
