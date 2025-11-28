@@ -43,17 +43,45 @@ def handle_event():
     event_id = request.headers.get('ce-id', 'Desconocido')
     source = request.headers.get('ce-source', 'Desconocido')
     
-    # Handle CloudEvent data wrapper
-    if 'data' in envelope:
+    payload = {}
+    
+    # Case 1: Pub/Sub Push Subscription
+    if 'message' in envelope and 'subscription' in envelope:
+        try:
+            # Check attributes first (common for GCS notifications)
+            if 'attributes' in envelope['message']:
+                payload.update(envelope['message']['attributes'])
+            
+            # Try to decode data
+            if 'data' in envelope['message']:
+                b64_data = envelope['message']['data']
+                decoded_data = base64.b64decode(b64_data).decode('utf-8')
+                try:
+                    json_data = json.loads(decoded_data)
+                    if isinstance(json_data, dict):
+                        payload.update(json_data)
+                except json.JSONDecodeError:
+                    logging.warning("Pub/Sub data is not JSON")
+                    pass
+            
+            logging.info("Processed Pub/Sub message")
+        except Exception as e:
+            logging.error(f"Failed to process Pub/Sub message: {e}")
+
+    # Case 2: CloudEvent (Eventarc) with 'data' wrapper
+    elif 'data' in envelope:
         payload = envelope['data']
+    
+    # Case 3: Flat payload
     else:
         payload = envelope
     
     # Información del archivo
-    bucket_name = payload.get('bucket', 'Desconocido')
-    file_name = payload.get('name', 'Desconocido')
-    content_type = payload.get('contentType', 'Desconocido')
-    size = payload.get('size', 0)
+    # Support both GCS resource format ('bucket', 'name') and Pub/Sub notification format ('bucketId', 'objectId')
+    bucket_name = payload.get('bucket') or payload.get('bucketId') or 'Desconocido'
+    file_name = payload.get('name') or payload.get('objectId') or 'Desconocido'
+    content_type = payload.get('contentType') or payload.get('content-type') or 'Desconocido'
+    size = payload.get('size') or payload.get('objectGeneration') or 0 
     
     # Mostrar información
     logging.info('=' * 60)
