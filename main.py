@@ -97,6 +97,22 @@ def handle_event():
     bucket_name = 'Desconocido'
     file_name = 'Desconocido'
     
+    # Strategy A: Cloud Audit Log (specific structure)
+    # Payload type: type.googleapis.com/google.events.cloud.audit.v1.LogEntryData
+    if 'protoPayload' in envelope and 'resourceName' in envelope['protoPayload']:
+        resource_name = envelope['protoPayload']['resourceName']
+        # Format: projects/_/buckets/BUCKET_NAME/objects/OBJECT_NAME
+        if 'objects/' in resource_name:
+            try:
+                # Split by 'objects/' and get the second part (the object name)
+                file_name = resource_name.split('objects/')[-1]
+            except Exception:
+                pass
+        
+        if 'resource' in envelope and 'labels' in envelope['resource']:
+             bucket_name = envelope['resource']['labels'].get('bucket_name', 'Desconocido')
+
+    # Strategy B: Common fields (GCS/PubSub)
     if bucket_name == 'Desconocido':
         bucket_name = payload.get('bucket') or payload.get('bucketId') or 'Desconocido'
     
@@ -105,10 +121,24 @@ def handle_event():
 
     # Strategy C: Recursive Fallback
     if bucket_name == 'Desconocido':
-        bucket_name = find_key(payload, 'bucket') or find_key(payload, 'bucketId') or find_key(envelope, 'bucket') or find_key(envelope, 'bucketId') or 'Desconocido'
+        bucket_name = find_key(payload, 'bucket') or find_key(payload, 'bucketId') or find_key(payload, 'bucket_name') or \
+                      find_key(envelope, 'bucket') or find_key(envelope, 'bucketId') or find_key(envelope, 'bucket_name') or 'Desconocido'
     
     if file_name == 'Desconocido':
-        file_name = find_key(payload, 'name') or find_key(payload, 'objectId') or find_key(envelope, 'name') or find_key(envelope, 'objectId') or 'Desconocido'
+        # Try to find 'name', 'objectId'
+        file_name = find_key(payload, 'name') or find_key(payload, 'objectId') or \
+                    find_key(envelope, 'name') or find_key(envelope, 'objectId')
+        
+        # If not found, look for 'resourceName' and parse it
+        if not file_name:
+            res_name = find_key(payload, 'resourceName') or find_key(envelope, 'resourceName')
+            if res_name and 'objects/' in res_name:
+                file_name = res_name.split('objects/')[-1]
+            elif res_name:
+                file_name = res_name
+        
+        if not file_name:
+            file_name = 'Desconocido'
 
     content_type = find_key(payload, 'contentType') or find_key(payload, 'content-type') or 'Desconocido'
     size = find_key(payload, 'size') or find_key(payload, 'objectGeneration') or 0
