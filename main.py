@@ -45,6 +45,23 @@ def handle_event():
     
     payload = {}
     
+    # Helper to find key recursively
+    def find_key(data, target_key):
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if key == target_key:
+                    return value
+                if isinstance(value, (dict, list)):
+                    found = find_key(value, target_key)
+                    if found: return found
+        elif isinstance(data, list):
+            for item in data:
+                found = find_key(item, target_key)
+                if found: return found
+        return None
+
+    # Parsing Strategies
+    
     # Case 1: Pub/Sub Push Subscription
     if 'message' in envelope and 'subscription' in envelope:
         try:
@@ -75,26 +92,24 @@ def handle_event():
     # Case 3: Flat payload
     else:
         payload = envelope
-    
-    # Helper to find key recursively
-    def find_key(data, target_key):
-        if isinstance(data, dict):
-            for key, value in data.items():
-                if key == target_key:
-                    return value
-                if isinstance(value, (dict, list)):
-                    found = find_key(value, target_key)
-                    if found: return found
-        elif isinstance(data, list):
-            for item in data:
-                found = find_key(item, target_key)
-                if found: return found
-        return None
 
-    # Información del archivo
-    # Search for common keys recursively
-    bucket_name = find_key(payload, 'bucket') or find_key(payload, 'bucketId') or find_key(envelope, 'bucket') or find_key(envelope, 'bucketId') or 'Desconocido'
-    file_name = find_key(payload, 'name') or find_key(payload, 'objectId') or find_key(envelope, 'name') or find_key(envelope, 'objectId') or 'Desconocido'
+    # Extract File Info
+    bucket_name = 'Desconocido'
+    file_name = 'Desconocido'
+    
+    if bucket_name == 'Desconocido':
+        bucket_name = payload.get('bucket') or payload.get('bucketId') or 'Desconocido'
+    
+    if file_name == 'Desconocido':
+        file_name = payload.get('name') or payload.get('objectId') or 'Desconocido'
+
+    # Strategy C: Recursive Fallback
+    if bucket_name == 'Desconocido':
+        bucket_name = find_key(payload, 'bucket') or find_key(payload, 'bucketId') or find_key(envelope, 'bucket') or find_key(envelope, 'bucketId') or 'Desconocido'
+    
+    if file_name == 'Desconocido':
+        file_name = find_key(payload, 'name') or find_key(payload, 'objectId') or find_key(envelope, 'name') or find_key(envelope, 'objectId') or 'Desconocido'
+
     content_type = find_key(payload, 'contentType') or find_key(payload, 'content-type') or 'Desconocido'
     size = find_key(payload, 'size') or find_key(payload, 'objectGeneration') or 0
     
