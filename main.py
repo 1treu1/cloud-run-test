@@ -1,8 +1,28 @@
 from flask import Flask, request
 import json
 import base64
+import subprocess
 
 app = Flask(__name__)
+
+def run_command(command):
+    """Ejecuta un comando del sistema y retorna su output"""
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if result.returncode == 0:
+            return result.stdout
+        else:
+            return f"Error: {result.stderr}"
+    except subprocess.TimeoutExpired:
+        return "Error: Comando excedió el tiempo límite"
+    except Exception as e:
+        return f"Error ejecutando comando: {str(e)}"
 
 @app.route('/', methods=['POST'])
 def handle_event():
@@ -33,6 +53,20 @@ def handle_event():
     print(f'Tamaño: {size} bytes')
     print(f'Event ID: {event_id}')
     print(f'Event Type: {event_type}')
+    print('=' * 60)
+    
+    # Ejecutar comandos NVIDIA
+    print('\n🔧 INFORMACIÓN DEL SISTEMA')
+    print('=' * 60)
+    
+    print('\n📌 NVCC Version:')
+    nvcc_output = run_command('nvcc -V')
+    print(nvcc_output)
+    
+    print('\n📌 NVIDIA-SMI:')
+    nvidia_smi_output = run_command('nvidia-smi')
+    print(nvidia_smi_output)
+    
     print('=' * 60)
     
     # Respuesta
