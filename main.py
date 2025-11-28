@@ -109,6 +109,9 @@ def handle_event():
     
     logging.info('=' * 60)
     
+    # Debug: Log raw payload again at the end
+    logging.info(f"DEBUG: Raw Payload at end: {json.dumps(envelope)}")
+    
     # Respuesta
     response = {
         'message': 'Evento procesado exitosamente',
